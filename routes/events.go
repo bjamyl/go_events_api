@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"com.github/bjamyl/go-events-api/models"
-	"com.github/bjamyl/go-events-api/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -39,28 +38,15 @@ func getEvent(context *gin.Context) {
 
 // Creating an event
 func createEvent(context *gin.Context) {
-	token := context.Request.Header.Get("Authorization")
-
-	if token == "" {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorized"})
-		return
-	}
-
-	userId, err := utils.VerifyToken(token)
-
-	if err != nil {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "not authorized"})
-		return
-	}
-
-	
 	var event models.Event
-	err = context.ShouldBindJSON(&event)
+	err := context.ShouldBindJSON(&event)
 
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "could not parse data"})
 		return
 	}
+
+	userId := context.GetInt64("userId")
 
 	event.UserID = userId
 
@@ -83,9 +69,15 @@ func updateEvent(context *gin.Context) {
 	}
 
 	event, err := models.GetEventById(eventId)
+	userId := context.GetInt64("userId")
 
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not fetch event"})
+		return
+	}
+
+	if event.UserID != userId {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "not authorized to update event"})
 		return
 	}
 
@@ -107,6 +99,8 @@ func updateEvent(context *gin.Context) {
 
 // Delete event
 func deleteEvent(context *gin.Context) {
+	userId := context.GetInt64("userId")
+
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "could not parse id"})
@@ -117,6 +111,11 @@ func deleteEvent(context *gin.Context) {
 
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "could not fetch event"})
+		return
+	}
+
+	if event.UserID != userId {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "could not delete event"})
 		return
 	}
 
