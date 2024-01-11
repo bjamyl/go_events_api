@@ -2,6 +2,6 @@ POST http://localhost:8080/signup
 Content-Type: application/json
 
 {
-    "email": "jamil@crescentcity.com",
+    "email": "naaila@crescentcity.com",
     "password": "booksarelife"
 }
